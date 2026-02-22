@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - blinkit-network
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    networks:
+      - blinkit-network
+    volumes:
+      - ./user-service:/app
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    networks:
+      - blinkit-network
+    volumes:
+      - ./product-service:/app
+
+  cart-order-service:
+    build: ./cart-order-service
+    container_name: cart-order-service
+    ports:
+      - "8003:8003"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - PRODUCT_SERVICE_URL=http://product-service:8002
+    depends_on:
+      - mongodb
+      - product-service
+    networks:
+      - blinkit-network
+    volumes:
+      - ./cart-order-service:/app
+
+  delivery-service:
+    build: ./delivery-service
+    container_name: delivery-service
+    ports:
+      - "8004:8004"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - ORDER_SERVICE_URL=http://cart-order-service:8003
+    depends_on:
+      - mongodb
+      - cart-order-service
+    networks:
+      - blinkit-network
+    volumes:
+      - ./delivery-service:/app
+
+networks:
+  blinkit-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
